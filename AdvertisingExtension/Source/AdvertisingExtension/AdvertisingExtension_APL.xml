@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--AndroidAdvertising optional additions-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- init section is always evaluated once per architecture -->
+  <init>
+    <log text="AdvertisingExtension init"/>
+    <setBoolFromProperty result="bSupportAdMob" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="bSupportAdMob" default="true"/>
+  </init>
+
+  <buildGradleAdditions>
+    <if condition="bSupportAdMob">
+      <true>
+        <insert>
+          dependencies {
+            implementation('com.google.android.gms:play-services-ads:11.8.0')
+          }
+        </insert>
+      </true>
+    </if>
+  </buildGradleAdditions>
+
+  <!-- optional additions to the GameActivity imports in GameActivity.java -->
+  <gameActivityImportAdditions>
+    <if condition="bSupportAdMob">
+      <true>
+        <insert>
+          import com.google.android.gms.ads.MobileAds;
+          import com.google.android.gms.ads.AdRequest;
+          import com.google.android.gms.ads.reward.RewardedVideoAd;
+          import com.google.android.gms.ads.reward.RewardedVideoAdListener;
+          import com.google.android.gms.ads.reward.RewardItem;
+        </insert>
+      </true>
+    </if>
+  </gameActivityImportAdditions>
+
+  <!-- optional additions to the GameActivity class in GameActivity.java -->
+  <gameActivityClassAdditions>
+    <if condition="bSupportAdMob">
+      <true>
+        <insert>
+          <![CDATA[
+          /** AdMob Rewarded Video Ad support */
+          private RewardedVideoAd _rewardedVideoAd;
+          private AdRequest _rewardedVideoAdRequest;
+          private boolean _isRewardedVideoAdRequested = false;
+          private boolean _isRewardedVideoAdLoaded = false;
+          private boolean _isShowAutomatically = false;
+                 
+          public void AndroidThunkJava_LoadRewardedVideoAd(final String AdMobAdUnitID, boolean isShowAutomatically)
+          { 
+            _isRewardedVideoAdLoaded = false;
+            _isShowAutomatically = isShowAutomatically;
+            _isRewardedVideoAdRequested = true;
+            _activity.runOnUiThread(new Runnable()
+		        {
+		            @Override
+		            public void run()
+		            {					
+                  _rewardedVideoAd.loadAd(AdMobAdUnitID, new AdRequest.Builder().build());
+		            }
+		        });           
+          }
+
+          public void AndroidThunkJava_ShowRewardedVideoAd()
+          { 
+            _activity.runOnUiThread(new Runnable()
+			      {
+			        @Override
+			        public void run()
+			        {					
+					      if (_rewardedVideoAd != null && _rewardedVideoAd.isLoaded()) {
+                  _rewardedVideoAd.show();
+                }
+				      }
+			      });            
+          }
+
+          public boolean AndroidThunkJava_IsRewardedVideoAdAvailable()
+          {
+            return _isRewardedVideoAdLoaded;
+          }
+          
+          public boolean AndroidThunkJava_IsRewardedVideoAdRequested()
+          {
+            return _isRewardedVideoAdRequested;
+          }
+          
+          public native void nativeOnResultAdmobRewardedAd(boolean IsSuccess, String RewardType, int Amount);
+        ]]>
+        </insert>
+      </true>
+    </if>
+  </gameActivityClassAdditions>
+
+  <gameActivityOnCreateAdditions>
+    <if condition="bSupportAdMob">
+      <true>
+        <!-- <insertValue value="String admobAppID = &quot;$S($SAppID)&quot;;" /> -->
+        <insert>
+          //MobileAds.initialize(this, admobAppID);
+          _rewardedVideoAd = MobileAds.getRewardedVideoAdInstance(this);
+          _rewardedVideoAd.setRewardedVideoAdListener(new RewardedVideoAdListener()
+          {
+          @Override
+          public void onRewarded(RewardItem reward)
+          {
+          nativeOnResultAdmobRewardedAd(true, reward.getType(), reward.getAmount());
+          }
+
+          @Override
+          public void onRewardedVideoAdLeftApplication()
+          {
+          }
+
+          @Override
+          public void onRewardedVideoAdClosed()
+          {
+          _isRewardedVideoAdLoaded = false;
+          _isShowAutomatically = false;
+          _isRewardedVideoAdRequested = false;
+          }
+
+          @Override
+          public void onRewardedVideoAdFailedToLoad(int errorCode)
+          {
+          _isRewardedVideoAdLoaded = false;
+          _isShowAutomatically = false;
+          _isRewardedVideoAdRequested = false;
+          nativeOnResultAdmobRewardedAd(false, "", 0);
+          }
+
+          @Override
+          public void onRewardedVideoAdLoaded()
+          {
+          _isRewardedVideoAdLoaded = true;
+          if (_isShowAutomatically == true)
+          {
+          AndroidThunkJava_ShowRewardedVideoAd();
+          }
+          }
+
+          @Override
+          public void onRewardedVideoAdOpened()
+          {
+
+          }
+
+          @Override
+          public void onRewardedVideoStarted()
+          {
+
+          }
+          });
+        </insert>
+      </true>
+    </if>
+  </gameActivityOnCreateAdditions>
+
+  <gameActivityOnResumeAdditions>
+    <if condition="bSupportAdMob">
+      <true>
+        <insert>
+          if (_rewardedVideoAd != null)
+          {
+            _rewardedVideoAd.resume(this);
+          }
+        </insert>
+      </true>
+    </if>
+  </gameActivityOnResumeAdditions>
+
+  <gameActivityOnPauseAdditions>
+    <if condition="bSupportAdMob">
+      <true>
+        <insert>
+          if (_rewardedVideoAd != null)
+          {
+            _rewardedVideoAd.pause(this);
+          }
+        </insert>
+      </true>
+    </if>
+  </gameActivityOnPauseAdditions>
+
+  <gameActivityonDestroyAdditions>
+    <if condition="bSupportAdMob">
+      <true>
+        <insert>
+          if (_rewardedVideoAd != null)
+          {
+            _rewardedVideoAd.destroy(this);
+          }
+        </insert>
+      </true>
+    </if>
+  </gameActivityonDestroyAdditions>
+</root>
