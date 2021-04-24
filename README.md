@@ -1,5 +1,5 @@
 # UE4_AdvertisingExtension
-* ue4 Admob plugins
+* ue4 AdMob rewarded ad plugins
 * only support android
 
 ## Reward Callback
